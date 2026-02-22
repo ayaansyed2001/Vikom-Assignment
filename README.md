@@ -203,10 +203,221 @@ Dealers with existing orders cannot be deleted (PROTECT constraint).
 
 Manual inventory updates are performed by admin users.
 
-🎥 Demo Video
+🧪 Demo / Step-by-Step Testing Flow
 
-Video walkthrough link:
-(Add Google Drive / YouTube link here)
+Base URL:
+
+http://127.0.0.1:8000/api/
+
+Use Postman → Body → raw → JSON.
+
+🔹 SCENARIO 1 — Successful Order Flow
+1️⃣ Create Product
+
+POST
+
+/api/products/
+
+Body:
+
+{
+  "name": "Brake Pad",
+  "sku": "BP001",
+  "price": 500,
+  "description": "Front brake pad"
+}
+
+Expected:
+
+Product created
+
+ID = 1
+
+2️⃣ Add Inventory
+
+POST
+
+/api/inventory/
+
+Body:
+
+{
+  "product": 1,
+  "quantity": 100
+}
+
+Expected:
+
+Stock = 100 units
+
+3️⃣ Create Dealer
+
+POST
+
+/api/dealers/
+
+Body:
+
+{
+  "name": "ABC Motors",
+  "email": "abc@test.com",
+  "phone": "9999999999",
+  "address": "Pune"
+}
+
+⚠️ All fields required:
+name
+email
+phone
+address
+Expected:
+Dealer ID = 1
+
+4️⃣ Create Draft Order
+
+POST
+
+/api/orders/
+
+Body:
+
+{
+  "dealer": 1,
+  "items": [
+    {
+      "product": 1,
+      "quantity": 10
+    }
+  ]
+}
+
+Expected:
+
+Status = DRAFT
+
+total_amount = 5000
+
+5️⃣ Confirm Order
+
+POST
+
+/api/orders/1/confirm/
+
+Expected:
+
+Status → CONFIRMED
+
+Stock deducted
+
+6️⃣ Verify Stock Deduction
+
+GET
+
+/api/products/
+
+Expected:
+
+stock = 90
+7️⃣ Deliver Order
+
+POST
+
+/api/orders/1/deliver/
+
+Expected:
+
+Status → DELIVERED
+
+🔹 SCENARIO 2 — Insufficient Stock
+1️⃣ Reduce Stock to 5
+
+PUT
+
+/api/inventory/1/
+
+Body:
+
+{
+  "quantity": 5
+}
+2️⃣ Create Large Order
+
+POST
+
+/api/orders/
+
+Body:
+
+{
+  "dealer": 1,
+  "items": [
+    {
+      "product": 1,
+      "quantity": 10
+    }
+  ]
+}
+3️⃣ Confirm Order
+
+POST
+
+/api/orders/2/confirm/
+
+Expected error:
+
+{
+  "error": "Insufficient stock",
+  "details": [
+    {
+      "product": "Brake Pad",
+      "available": 5,
+      "requested": 10
+    }
+  ]
+}
+🔹 SCENARIO 3 — Invalid Status Transition
+Case 1 — Deliver Draft Order
+
+POST
+
+/api/orders/{draft_id}/deliver/
+
+Expected:
+
+Only confirmed orders can be delivered.
+Case 2 — Edit Confirmed Order
+
+PUT
+
+/api/orders/1/
+
+Body:
+
+{
+  "dealer": 1,
+  "items": [
+    {
+      "product": 1,
+      "quantity": 5
+    }
+  ]
+}
+
+Expected:
+
+Only draft orders can be edited.
+Case 3 — Reverse Transition
+
+Try confirming delivered order → blocked.
+
+🧾 Important Testing Notes
+
+Inventory created once per product
+Stock deducted only on confirm
+Draft orders editable
+Confirmed orders locked
+Price snapshot preserved
+
 
 📦 Postman Collection
 
